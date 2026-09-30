@@ -1,0 +1,20 @@
+[
+  {
+    "name": "tls",
+    "description": "检查系统服务运行状态",
+    "status": true,
+    "cmd": "./liu {host} {time} 1000"
+  },
+  {
+    "name": "go-saturn",
+    "description": "执行数据库每日增量备份",
+    "status": true,
+    "cmd": "./liu {host} {time} 1500"
+  },
+  {
+    "name": "silk-flood",
+    "description": "清理应用缓存数据",
+    "status": false,
+    "cmd": "./liu {host} {time} 10300"
+  }
+]

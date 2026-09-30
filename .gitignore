@@ -1,0 +1,7 @@
+backend/bin/
+node_modules/
+*.log
+.env
+.env.*
+*.exe
+.DS_Store
