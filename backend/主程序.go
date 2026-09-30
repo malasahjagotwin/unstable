@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,13 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"unstablestress/backend/arguments"
+	"unstablestress/backend/internal/arguments"
+	"unstablestress/backend/internal/cli"
 	"unstablestress/backend/internal/protocol"
 )
 
 const (
 	fetchPath      = "/fetch"
 	rconPath       = "/rcon"
+	defaultJSONDir = "配置"
 	shutdownWindow = 10 * time.Second
 	headerTimeout  = 10 * time.Second
 	writeTimeout   = 30 * time.Second
@@ -39,12 +42,12 @@ func main() {
 
 	store, err := LoadStore(config.jsonDir)
 	if err != nil {
-		logger.Fatalf("configuration is unusable: %v", err)
+		logger.Fatalf("配置不可用：%v", err)
 	}
 
 	prober, err := arguments.NewProber(config.probeTimeout)
 	if err != nil {
-		logger.Fatalf("configuration is unusable: %v", err)
+		logger.Fatalf("配置不可用：%v", err)
 	}
 
 	slots := newSlotManager()
@@ -61,34 +64,45 @@ func main() {
 	defer stop()
 
 	go func() {
-		logger.Printf("REST API ready addr=%s users=%d methods=%d fetch=%s rcon=%s",
+		logger.Printf("REST API 已就绪 addr=%s users=%d methods=%d fetch=%s rcon=%s",
 			config.address, len(store.Users), len(store.Methods), fetchPath, rconPath)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatalf("server stopped unexpectedly: %v", err)
+			logger.Fatalf("服务器意外停止：%v", err)
 		}
 	}()
 
 	<-ctx.Done()
-	logger.Printf("shutdown signal received, draining for %s", shutdownWindow)
+	logger.Printf("收到退出信号，等待 %s 完成收尾", shutdownWindow)
 
 	drainCtx, cancel := context.WithTimeout(context.Background(), shutdownWindow)
 	defer cancel()
 
 	if err := server.Shutdown(drainCtx); err != nil {
-		logger.Printf("graceful shutdown did not complete: %v", err)
+		logger.Printf("优雅退出未完成：%v", err)
 	}
-	logger.Printf("stopped")
+	logger.Printf("已停止")
 }
 
 func parseFlags() settings {
 	var config settings
 
-	flag.StringVar(&config.address, "addr", ":8080", "address the REST API listens on")
-	flag.StringVar(&config.jsonDir, "json-dir", "json", "directory holding users.json, methods.json and blacklist.json")
-	flag.StringVar(&config.botToken, "bot-token", os.Getenv("BOT_TOKEN"), "shared secret bots must send in the "+protocol.BotTokenHeader+" header")
-	flag.StringVar(&config.probeTimeout, "probe-timeout", probeTimeout, "timeout used when detecting whether a host serves HTTPS")
-	flag.DurationVar(&config.reapInterval, "slot-reap-interval", time.Second, "how often expired slots are reclaimed")
-	flag.Parse()
+	set := cli.New("api")
+	set.StringVar(&config.address, "addr", ":8080", "REST API 监听的地址")
+	set.StringVar(&config.jsonDir, "json-dir", defaultJSONDir, "存放 users.json、methods.json 和 blacklist.json 的目录")
+	set.StringVar(&config.botToken, "bot-token", os.Getenv("BOT_TOKEN"), "机器人必须在 "+protocol.BotTokenHeader+" 标头中发送的共享密钥")
+	set.StringVar(&config.probeTimeout, "probe-timeout", probeTimeout, "检测主机是否提供 HTTPS 服务时使用的超时时间")
+	set.DurationVar(&config.reapInterval, "slot-reap-interval", time.Second, "回收过期槽位（slot）的频率")
+	set.Usage = func() { cli.Usage(set, os.Stderr) }
+
+	if err := cli.Parse(set, os.Args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			cli.Usage(set, os.Stdout)
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, err)
+		set.Usage()
+		os.Exit(2)
+	}
 
 	return config
 }
@@ -98,8 +112,8 @@ func newHTTPServer(address string, fetch *fetchServer, logger *log.Logger) *http
 	mux.HandleFunc(fetchPath, fetch.handle)
 	mux.HandleFunc(rconPath, fetch.hub.handle)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		logger.Printf("rejected request to unknown path %s from %s", r.URL.Path, r.RemoteAddr)
-		writeProblem(w, http.StatusNotFound, "unknown endpoint %s", r.URL.Path)
+		logger.Printf("已拒绝来自 %s 对未知路径 %s 的请求", r.RemoteAddr, r.URL.Path)
+		writeProblem(w, http.StatusNotFound, "未知端点 %s", r.URL.Path)
 	})
 
 	return &http.Server{

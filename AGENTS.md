@@ -3,7 +3,17 @@
 ## 语言
 
 - 一律使用中文回复，包括解释、提问选项和总结。
-- 代码中的标识符、字符串字面量和日志文案保持英文，不需要翻译。
+- 面向用户的文案一律用中文：命令行参数说明、日志输出、启动与配置错误、HTTP 接口返回的错误信息。
+- 不需要翻译的部分：标识符名、JSON 字段名、查询参数名（`key`/`host`/`time`/`method`）、协议字段名（`status`/`exit_code`/`stdout` 等）、协议头名（`X-Bot-Token`）、URL。
+- Go 的 `flag` 包不做本地化，未知标志会输出英文。因此命令行帮助与解析错误由 `backend/internal/cli` 统一产出中文，新增标志时沿用 `cli.New` 与 `cli.Usage`，不要直接用全局 `flag`。
+
+## 命名
+
+- 提交到 GitHub 的文件名一律使用汉字，例如 `任务分发.go`、`槽位.go`、`参数/访问控制.go`。
+- 包目录必须保留 ASCII 名称（`internal/arguments`、`internal/cli`、`internal/protocol`、`bot`）：Go 的导入路径只接受 ASCII 字符，目录名用汉字会报 `malformed import path`，项目无法构建。
+- 以下文件名由工具链硬编码，不可改名：`go.mod`、`go.sum`、`.gitignore`、`README.md`、`AGENTS.md`。
+- Go 标识符、包名与 module 路径保持 ASCII：`package main`、`package arguments` 以及 `unstablestress/backend/...`。
+- 用 `git config core.quotepath false` 让 `git ls-files` 正常显示汉字路径。
 
 ## 代码规范
 

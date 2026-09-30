@@ -14,30 +14,30 @@ func TestValidateHost(t *testing.T) {
 		scheme   string
 		rejected bool
 	}{
-		{name: "bare domain needs a probe", raw: "laoshi.com", hostname: "laoshi.com", scheme: ""},
-		{name: "https stays https", raw: "https://laohi.com", hostname: "laohi.com", scheme: "https"},
-		{name: "http stays http", raw: "http://laohi.com", hostname: "laohi.com", scheme: "http"},
-		{name: "scheme is lowercased", raw: "HTTPS://LaoHi.com", hostname: "laohi.com", scheme: "https"},
-		{name: "trailing dot is dropped", raw: "laoshi.com.", hostname: "laoshi.com", scheme: ""},
-		{name: "subdomains are allowed", raw: "a.b.example.co.uk", hostname: "a.b.example.co.uk", scheme: ""},
-		{name: "ipv4 is allowed", raw: "http://93.184.216.34", hostname: "93.184.216.34", scheme: "http"},
+		{name: "裸域名需要探测协议", raw: "laoshi.com", hostname: "laoshi.com", scheme: ""},
+		{name: "带 https 前缀保持 https", raw: "https://laohi.com", hostname: "laohi.com", scheme: "https"},
+		{name: "带 http 前缀保持 http", raw: "http://laohi.com", hostname: "laohi.com", scheme: "http"},
+		{name: "协议转小写", raw: "HTTPS://LaoHi.com", hostname: "laohi.com", scheme: "https"},
+		{name: "去掉结尾的点", raw: "laoshi.com.", hostname: "laoshi.com", scheme: ""},
+		{name: "允许多级子域名", raw: "a.b.example.co.uk", hostname: "a.b.example.co.uk", scheme: ""},
+		{name: "允许 IPv4", raw: "http://93.184.216.34", hostname: "93.184.216.34", scheme: "http"},
 
-		{name: "rejects an http port", raw: "http://laohi.com:8080", rejected: true},
-		{name: "rejects an https port", raw: "https://laoshgo.com:707", rejected: true},
-		{name: "rejects a bare port", raw: "laohi.com:80", rejected: true},
-		{name: "rejects a path", raw: "laohi.com/admin", rejected: true},
-		{name: "rejects userinfo", raw: "user@laohi.com", rejected: true},
-		{name: "rejects a space", raw: "laohi .com", rejected: true},
-		{name: "rejects a semicolon", raw: "laohi.com;whoami", rejected: true},
-		{name: "rejects a backtick", raw: "`id`", rejected: true},
-		{name: "rejects a pipe", raw: "laohi.com|id", rejected: true},
-		{name: "rejects a dollar", raw: "$HOME", rejected: true},
-		{name: "rejects a newline", raw: "laohi.com\nid", rejected: true},
-		{name: "rejects an unsupported scheme", raw: "ftp://laohi.com", rejected: true},
-		{name: "rejects a single label", raw: "localhost", rejected: true},
-		{name: "rejects a numeric tld", raw: "laohi.123", rejected: true},
-		{name: "rejects an empty host", raw: "", rejected: true},
-		{name: "rejects a bare scheme", raw: "https://", rejected: true},
+		{name: "拒绝 http 带端口", raw: "http://laohi.com:8080", rejected: true},
+		{name: "拒绝 https 带端口", raw: "https://laoshgo.com:707", rejected: true},
+		{name: "拒绝裸端口", raw: "laohi.com:80", rejected: true},
+		{name: "拒绝带路径", raw: "laohi.com/admin", rejected: true},
+		{name: "拒绝带 userinfo", raw: "user@laohi.com", rejected: true},
+		{name: "拒绝空格", raw: "laohi .com", rejected: true},
+		{name: "拒绝分号", raw: "laohi.com;whoami", rejected: true},
+		{name: "拒绝反引号", raw: "`id`", rejected: true},
+		{name: "拒绝竖线", raw: "laohi.com|id", rejected: true},
+		{name: "拒绝美元符号", raw: "$HOME", rejected: true},
+		{name: "拒绝换行符", raw: "laohi.com\nid", rejected: true},
+		{name: "拒绝不支持的协议", raw: "ftp://laohi.com", rejected: true},
+		{name: "拒绝单段主机名", raw: "localhost", rejected: true},
+		{name: "拒绝数字顶级域", raw: "laohi.123", rejected: true},
+		{name: "拒绝空 host", raw: "", rejected: true},
+		{name: "拒绝只有协议没有主机名", raw: "https://", rejected: true},
 	}
 
 	for _, testCase := range cases {
@@ -46,12 +46,12 @@ func TestValidateHost(t *testing.T) {
 
 			if testCase.rejected {
 				if err == nil {
-					t.Fatalf("ValidateHost(%q) was accepted, want rejection", testCase.raw)
+					t.Fatalf("ValidateHost(%q) 被接受，应当被拒绝", testCase.raw)
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("ValidateHost(%q) failed: %v", testCase.raw, err)
+				t.Fatalf("ValidateHost(%q) 失败：%v", testCase.raw, err)
 			}
 			if host.Hostname != testCase.hostname || host.Scheme != testCase.scheme {
 				t.Fatalf("ValidateHost(%q) = %+v, want hostname=%q scheme=%q",
@@ -69,16 +69,16 @@ func TestValidateTime(t *testing.T) {
 		expected int
 		rejected bool
 	}{
-		{name: "under the limit", raw: "80", limit: 120, expected: 80},
-		{name: "exactly the limit", raw: "120", limit: 120, expected: 120},
-		{name: "one over the limit", raw: "121", limit: 120, rejected: true},
-		{name: "dotted input is rejected", raw: "1.1.1", limit: 120, rejected: true},
-		{name: "letters are rejected", raw: "12a", limit: 120, rejected: true},
-		{name: "units are rejected", raw: "10s", limit: 120, rejected: true},
-		{name: "signs are rejected", raw: "-10", limit: 120, rejected: true},
-		{name: "empty is rejected", raw: "", limit: 120, rejected: true},
-		{name: "zero is rejected", raw: "0", limit: 120, rejected: true},
-		{name: "no limit accepts a large value", raw: "9999", limit: 0, expected: 9999},
+		{name: "低于上限", raw: "80", limit: 120, expected: 80},
+		{name: "正好等于上限", raw: "120", limit: 120, expected: 120},
+		{name: "超出上限一秒", raw: "121", limit: 120, rejected: true},
+		{name: "拒绝带点的输入", raw: "1.1.1", limit: 120, rejected: true},
+		{name: "拒绝含字母", raw: "12a", limit: 120, rejected: true},
+		{name: "拒绝带单位", raw: "10s", limit: 120, rejected: true},
+		{name: "拒绝正负号", raw: "-10", limit: 120, rejected: true},
+		{name: "拒绝空值", raw: "", limit: 120, rejected: true},
+		{name: "拒绝零", raw: "0", limit: 120, rejected: true},
+		{name: "无上限时接受大数值", raw: "9999", limit: 0, expected: 9999},
 	}
 
 	for _, testCase := range cases {
@@ -87,12 +87,12 @@ func TestValidateTime(t *testing.T) {
 
 			if testCase.rejected {
 				if err == nil {
-					t.Fatalf("ValidateTime(%q, %d) was accepted, want rejection", testCase.raw, testCase.limit)
+					t.Fatalf("ValidateTime(%q, %d) 被接受，应当被拒绝", testCase.raw, testCase.limit)
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("ValidateTime(%q, %d) failed: %v", testCase.raw, testCase.limit, err)
+				t.Fatalf("ValidateTime(%q, %d) 失败：%v", testCase.raw, testCase.limit, err)
 			}
 			if seconds != testCase.expected {
 				t.Fatalf("ValidateTime(%q, %d) = %d, want %d", testCase.raw, testCase.limit, seconds, testCase.expected)
@@ -110,14 +110,14 @@ func TestValidateIP(t *testing.T) {
 		whitelist  []string
 		rejected   bool
 	}{
-		{name: "exact match", remoteAddr: "10.0.0.15:5555", whitelist: whitelist},
-		{name: "ipv6 loopback", remoteAddr: "[::1]:5555", whitelist: []string{"::1"}},
-		{name: "inside a cidr", remoteAddr: "192.168.1.77:5555", whitelist: whitelist},
-		{name: "outside the whitelist", remoteAddr: "8.8.8.8:5555", whitelist: whitelist, rejected: true},
-		{name: "outside the cidr", remoteAddr: "192.168.2.5:5555", whitelist: whitelist, rejected: true},
-		{name: "empty whitelist allows anyone", remoteAddr: "8.8.8.8:5555", whitelist: nil},
-		{name: "unparsable address", remoteAddr: "not-an-ip", whitelist: whitelist, rejected: true},
-		{name: "unparsable address without a whitelist", remoteAddr: "not-an-ip", whitelist: nil},
+		{name: "精确匹配", remoteAddr: "10.0.0.15:5555", whitelist: whitelist},
+		{name: "IPv6 回环地址", remoteAddr: "[::1]:5555", whitelist: []string{"::1"}},
+		{name: "落在 CIDR 段内", remoteAddr: "192.168.1.77:5555", whitelist: whitelist},
+		{name: "不在白名单内", remoteAddr: "8.8.8.8:5555", whitelist: whitelist, rejected: true},
+		{name: "落在 CIDR 段外", remoteAddr: "192.168.2.5:5555", whitelist: whitelist, rejected: true},
+		{name: "白名单为空时放行所有来源", remoteAddr: "8.8.8.8:5555", whitelist: nil},
+		{name: "无法解析的地址", remoteAddr: "not-an-ip", whitelist: whitelist, rejected: true},
+		{name: "无白名单时的无法解析地址", remoteAddr: "not-an-ip", whitelist: nil},
 	}
 
 	for _, testCase := range cases {
@@ -126,9 +126,9 @@ func TestValidateIP(t *testing.T) {
 
 			switch {
 			case testCase.rejected && err == nil:
-				t.Fatalf("ValidateIP(%q, %v) was accepted, want rejection", testCase.remoteAddr, testCase.whitelist)
+				t.Fatalf("ValidateIP(%q, %v) 被接受，应当被拒绝", testCase.remoteAddr, testCase.whitelist)
 			case !testCase.rejected && err != nil:
-				t.Fatalf("ValidateIP(%q, %v) failed: %v", testCase.remoteAddr, testCase.whitelist, err)
+				t.Fatalf("ValidateIP(%q, %v) 失败：%v", testCase.remoteAddr, testCase.whitelist, err)
 			}
 		})
 	}
@@ -151,13 +151,13 @@ func TestParseCmdTemplate(t *testing.T) {
 			expected: []string{"./liu", "https://laohi.com", "80", "1000"},
 		},
 		{
-			name:     "a rate without placeholders is kept",
+			name:     "不含占位符的速率值原样保留",
 			template: "./liu {host} {time} 10300",
 			host:     "http://laohi.com",
 			seconds:  10,
 			expected: []string{"./liu", "http://laohi.com", "10", "10300"},
 		},
-		{name: "an empty template is rejected", template: "   ", rejected: true},
+		{name: "拒绝空模板", template: "   ", rejected: true},
 	}
 
 	for _, testCase := range cases {
@@ -166,12 +166,12 @@ func TestParseCmdTemplate(t *testing.T) {
 
 			if testCase.rejected {
 				if err == nil {
-					t.Fatalf("ParseCmdTemplate(%q) was accepted, want rejection", testCase.template)
+					t.Fatalf("ParseCmdTemplate(%q) 被接受，应当被拒绝", testCase.template)
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("ParseCmdTemplate(%q) failed: %v", testCase.template, err)
+				t.Fatalf("ParseCmdTemplate(%q) 失败：%v", testCase.template, err)
 			}
 			if !reflect.DeepEqual(argv, testCase.expected) {
 				t.Fatalf("ParseCmdTemplate(%q) = %v, want %v", testCase.template, argv, testCase.expected)
@@ -209,16 +209,16 @@ func TestParse(t *testing.T) {
 
 		request, err := Parse(values, "127.0.0.1:41234", limits)
 		if err != nil {
-			t.Fatalf("Parse failed: %v", err)
+			t.Fatalf("Parse 失败：%v", err)
 		}
 		if request.Seconds != 80 || request.Host.Hostname != "laoshi.com" || request.Method != "tls" {
-			t.Fatalf("Parse = %+v, want seconds=80 host=laoshi.com method=tls", request)
+			t.Fatalf("Parse = %+v，应为 seconds=80 host=laoshi.com method=tls", request)
 		}
 		if request.ClientIP != "127.0.0.1" {
-			t.Fatalf("Parse client ip = %q, want 127.0.0.1", request.ClientIP)
+			t.Fatalf("Parse 得到的客户端 IP = %q，应为 127.0.0.1", request.ClientIP)
 		}
 		if !request.Host.NeedsProbe() {
-			t.Fatal("a bare domain must still need a protocol probe")
+			t.Fatal("裸域名仍然需要协议探测")
 		}
 	})
 
@@ -227,13 +227,13 @@ func TestParse(t *testing.T) {
 
 		request, err := Parse(values, "127.0.0.1:1", limits)
 		if err != nil {
-			t.Fatalf("Parse failed: %v", err)
+			t.Fatalf("Parse 失败：%v", err)
 		}
 		if request.Host.NeedsProbe() {
-			t.Fatal("an explicit scheme must not trigger a probe")
+			t.Fatal("显式指定协议时不应触发探测")
 		}
 		if request.Host.URL() != "http://laohi.com" {
-			t.Fatalf("URL = %q, want http://laohi.com", request.Host.URL())
+			t.Fatalf("URL = %q，应为 http://laohi.com", request.Host.URL())
 		}
 	})
 
@@ -250,7 +250,7 @@ func TestParse(t *testing.T) {
 	for name, values := range rejections {
 		t.Run("rejects "+name, func(t *testing.T) {
 			if _, err := Parse(values, "127.0.0.1:1", limits); err == nil {
-				t.Fatalf("Parse(%v) was accepted, want rejection", values)
+				t.Fatalf("Parse(%v) 被接受，应当被拒绝", values)
 			}
 		})
 	}
@@ -259,7 +259,7 @@ func TestParse(t *testing.T) {
 		values := url.Values{"key": {"k"}, "host": {"laohi.com"}, "time": {"10"}, "method": {"tls"}}
 
 		if _, err := Parse(values, "8.8.8.8:1", limits); err == nil {
-			t.Fatal("Parse from a non whitelisted address was accepted, want rejection")
+			t.Fatal("来自非白名单地址的 Parse 被接受，应当被拒绝")
 		}
 	})
 }
@@ -267,10 +267,10 @@ func TestParse(t *testing.T) {
 func TestNewProberRejectsBadTimeouts(t *testing.T) {
 	for _, raw := range []string{"", "soon", "0s", "-1s"} {
 		if _, err := NewProber(raw); err == nil {
-			t.Fatalf("NewProber(%q) was accepted, want rejection", raw)
+			t.Fatalf("NewProber(%q) 被接受，应当被拒绝", raw)
 		}
 	}
 	if _, err := NewProber("250ms"); err != nil {
-		t.Fatalf("NewProber(\"250ms\") failed: %v", err)
+		t.Fatalf("NewProber(\"250ms\") 失败：%v", err)
 	}
 }

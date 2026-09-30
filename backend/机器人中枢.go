@@ -59,13 +59,13 @@ func (h *hub) authorized(r *http.Request) bool {
 
 func (h *hub) handle(w http.ResponseWriter, r *http.Request) {
 	if !h.authorized(r) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		http.Error(w, "禁止访问", http.StatusForbidden)
 		return
 	}
 
 	connection, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Printf("rcon upgrade from %s failed: %v", r.RemoteAddr, err)
+		h.logger.Printf("来自 %s 的 rcon 升级失败：%v", r.RemoteAddr, err)
 		return
 	}
 
@@ -78,14 +78,14 @@ func (h *hub) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := connection.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
-		h.logger.Printf("bot %s read deadline setup failed: %v", bot.id, err)
+		h.logger.Printf("机器人 %s 读取超时设置失败：%v", bot.id, err)
 	}
 	connection.SetPongHandler(func(string) error {
 		return connection.SetReadDeadline(time.Now().Add(pongWait))
 	})
 
 	h.register(bot)
-	h.logger.Printf("bot %s connected from %s (online=%d)", bot.id, r.RemoteAddr, h.count())
+	h.logger.Printf("机器人 %s 已从 %s 接入（在线 %d）", bot.id, r.RemoteAddr, h.count())
 
 	go bot.writeLoop()
 	bot.readLoop()
@@ -94,7 +94,7 @@ func (h *hub) handle(w http.ResponseWriter, r *http.Request) {
 func (h *hub) broadcast(payload protocol.Task) int {
 	encoded, err := json.Marshal(payload)
 	if err != nil {
-		h.logger.Printf("task %s cannot be encoded: %v", payload.ID, err)
+		h.logger.Printf("任务 %s 无法编码：%v", payload.ID, err)
 		return 0
 	}
 
@@ -107,7 +107,7 @@ func (h *hub) broadcast(payload protocol.Task) int {
 		case bot.send <- encoded:
 			delivered++
 		default:
-			h.logger.Printf("bot %s queue is full, task %s skipped for it", bot.id, payload.ID)
+			h.logger.Printf("机器人 %s 队列已满，本次任务 %s 不分发给它", bot.id, payload.ID)
 		}
 	}
 	return delivered
@@ -155,7 +155,7 @@ func (b *botConn) readLoop() {
 	defer func() {
 		b.hub.remove(b)
 		b.conn.Close()
-		b.hub.logger.Printf("bot %s disconnected after %s (online=%d)",
+		b.hub.logger.Printf("机器人 %s 已断开，连接时长 %s（在线 %d）",
 			b.id, time.Since(b.joined).Round(time.Second), b.hub.count())
 	}()
 
@@ -167,7 +167,7 @@ func (b *botConn) readLoop() {
 
 		var result protocol.Report
 		if err := json.Unmarshal(data, &result); err != nil {
-			b.hub.logger.Printf("bot %s sent an unreadable report: %v", b.id, err)
+			b.hub.logger.Printf("机器人 %s 上报的内容无法解析：%v", b.id, err)
 			continue
 		}
 		result.BotID = b.id
@@ -207,10 +207,10 @@ func (b *botConn) writeLoop() {
 
 func (h *hub) logReport(result protocol.Report) {
 	if result.Status == protocol.StatusOK {
-		h.logger.Printf("task %s finished on %s exit=%d stdout=%q",
+		h.logger.Printf("任务 %s 已在 %s 完成 exit=%d stdout=%q",
 			result.ID, result.BotID, result.ExitCode, protocol.Tail(result.Stdout, protocol.OutputTailBytes))
 		return
 	}
-	h.logger.Printf("task %s failed on %s exit=%d error=%q stderr=%q",
+	h.logger.Printf("任务 %s 在 %s 失败 exit=%d error=%q stderr=%q",
 		result.ID, result.BotID, result.ExitCode, result.Error, protocol.Tail(result.Stderr, protocol.OutputTailBytes))
 }

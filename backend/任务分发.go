@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"unstablestress/backend/arguments"
+	"unstablestress/backend/internal/arguments"
 	"unstablestress/backend/internal/protocol"
 )
 
@@ -40,7 +40,7 @@ type problem struct {
 func (s *fetchServer) handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		w.Header().Set("Allow", "GET, POST")
-		writeProblem(w, http.StatusMethodNotAllowed, "only GET and POST are accepted")
+		writeProblem(w, http.StatusMethodNotAllowed, "只接受 GET 和 POST")
 		return
 	}
 
@@ -48,7 +48,7 @@ func (s *fetchServer) handle(w http.ResponseWriter, r *http.Request) {
 
 	user, found := s.store.User(values.Get("key"))
 	if !found {
-		writeProblem(w, http.StatusUnauthorized, "key is not recognized")
+		writeProblem(w, http.StatusUnauthorized, "key 无法识别")
 		return
 	}
 
@@ -62,22 +62,22 @@ func (s *fetchServer) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.store.HostBlocked(request.Host.Hostname) {
-		writeProblem(w, http.StatusForbidden, "host %s is blacklisted", request.Host.Hostname)
+		writeProblem(w, http.StatusForbidden, "host %s 已被列入黑名单", request.Host.Hostname)
 		return
 	}
 
 	method, found := s.store.Method(request.Method)
 	if !found {
-		writeProblem(w, http.StatusBadRequest, "method %s does not exist", request.Method)
+		writeProblem(w, http.StatusBadRequest, "method %s 不存在", request.Method)
 		return
 	}
 	if !method.Status {
-		writeProblem(w, http.StatusForbidden, "method %s is disabled", method.Name)
+		writeProblem(w, http.StatusForbidden, "method %s 已被禁用", method.Name)
 		return
 	}
 
 	if s.hub.count() == 0 {
-		writeProblem(w, http.StatusServiceUnavailable, "no bot is connected")
+		writeProblem(w, http.StatusServiceUnavailable, "当前没有机器人在线")
 		return
 	}
 
@@ -85,8 +85,8 @@ func (s *fetchServer) handle(w http.ResponseWriter, r *http.Request) {
 
 	argv, err := arguments.ParseCmdTemplate(method.Cmd, host.URL(), request.Seconds)
 	if err != nil {
-		s.logger.Printf("method %s has an unusable command: %v", method.Name, err)
-		writeProblem(w, http.StatusInternalServerError, "method %s is misconfigured", method.Name)
+		s.logger.Printf("method %s 的命令不可用：%v", method.Name, err)
+		writeProblem(w, http.StatusInternalServerError, "method %s 配置有误", method.Name)
 		return
 	}
 
@@ -107,11 +107,11 @@ func (s *fetchServer) handle(w http.ResponseWriter, r *http.Request) {
 	})
 	if delivered == 0 {
 		s.slots.release(user.Key, taskID)
-		writeProblem(w, http.StatusServiceUnavailable, "every bot dropped the task, retry shortly")
+		writeProblem(w, http.StatusServiceUnavailable, "所有机器人都丢弃了本次任务，请稍后重试")
 		return
 	}
 
-	s.logger.Printf("task %s accepted key=%s method=%s host=%s time=%ds bots=%d slots_left=%d/%d client=%s argv=%q",
+	s.logger.Printf("任务 %s 已受理 key=%s method=%s host=%s time=%ds bots=%d slots_left=%d/%d client=%s argv=%q",
 		taskID, user.Key, method.Name, host.URL(), request.Seconds, delivered,
 		slotsLeft, int(user.Slot), request.ClientIP, argv)
 

@@ -8,21 +8,24 @@ Go 编写的单端点 REST API，通过 WebSocket 把任务分发给已连接的
 
 ```
 backend/
-  main.go                 服务器：启动参数、路由、优雅退出
-  fetch.go                /fetch 处理逻辑
-  hub.go                  /rcon WebSocket 机器人集散器
-  slots.go                并发槽位计数与到期回收
-  config.go               加载 users/methods/blacklist
-  arguments/              查询参数解析与校验
-    arguments.go            Parse、ValidateHost、ValidateTime、ParseCmdTemplate
-    access.go               ValidateIP（支持 IP 与 CIDR）
-    probe.go                协议探测
-    arguments_test.go
+  主程序.go                 服务器：启动参数、路由、优雅退出
+  任务分发.go                /fetch 处理逻辑
+  机器人中枢.go                /rcon WebSocket 机器人集散器
+  槽位.go                   并发槽位计数与到期回收
+  配置加载.go                加载 users/methods/blacklist
+  internal/arguments/     查询参数解析与校验
+    参数.go                  Parse、ValidateHost、ValidateTime、ParseCmdTemplate
+    访问控制.go               ValidateIP（支持 IP 与 CIDR）
+    协议探测.go               协议探测
+    参数_test.go
+  internal/cli/          命令行帮助的中文输出
   internal/protocol/     REST API 与机器人共用的协议类型
-  connections/bot.go      机器人（独立 package main，只依赖 internal/protocol）
-  json/                   配置
+  bot/机器人.go            机器人（独立 package main，只依赖 internal/protocol）
+  配置/                   配置
   bin/                    编译产物（已 gitignore）
 ```
+
+包目录 `internal/arguments`、`internal/cli`、`internal/protocol` 和 `bot` 保留 ASCII 名称：Go 的导入路径只接受 ASCII 字符，目录一旦用汉字就会报 `malformed import path`。文件名不受此限制，因此已全部改为汉字。
 
 ## 接口
 
@@ -30,10 +33,10 @@ backend/
 
 | 参数 | 规则 |
 | --- | --- |
-| `key` | 必须存在于 `json/users.json` |
+| `key` | 必须存在于 `配置/users.json` |
 | `host` | 裸域名或带 `http://`、`https://` 前缀；禁止端口、路径、userinfo；仅允许 `[A-Za-z0-9.:/-]`。裸域名会先探测 443 端口的 TLS，失败降级为 HTTP |
 | `time` | 仅数字，不得超过该 `key` 的上限 |
-| `method` | 必须存在于 `json/methods.json` 且 `status` 为 `true` |
+| `method` | 必须存在于 `配置/methods.json` 且 `status` 为 `true` |
 
 校验顺序：`key` → IP 白名单 → `host` 格式 → 黑名单 → `time` → `method` → 槽位 → 广播。
 
@@ -45,11 +48,11 @@ backend/
 
 ## 配置
 
-`json/users.json` — 每个 `key` 的时长上限、并发槽位（`slot`）、IP 白名单。
+`配置/users.json` — 每个 `key` 的时长上限、并发槽位（`slot`）、IP 白名单。
 
-`json/methods.json` — 可用方法。`cmd` 模板中的 `{host}` 与 `{time}` 会被替换。
+`配置/methods.json` — 可用方法。`cmd` 模板中的 `{host}` 与 `{time}` 会被替换。
 
-`json/blacklist.json` — 禁止访问的域名，按主机名匹配，忽略协议与大小写。
+`配置/blacklist.json` — 禁止访问的域名，按主机名匹配，忽略协议与大小写。
 
 ## 构建与运行
 
@@ -57,9 +60,9 @@ backend/
 cd backend
 go test ./...
 go build -o bin/api ./
-go build -o bin/bot ./connections
+go build -o bin/bot ./bot
 
-./bin/api -addr :8080 -json-dir json -bot-token <secret>
+./bin/api -addr :8080 -json-dir 配置 -bot-token <secret>
 ./bin/bot -endpoint ws://127.0.0.1:8080/rcon -token <secret> -work-dir /path/to/lui
 ```
 
@@ -67,4 +70,4 @@ go build -o bin/bot ./connections
 
 ## 已知缺口
 
-`json/methods.json` 指向的 `./liu` 尚未实现。机器人按模板执行 `argv[0]`，因此该文件必须存在于机器人的 `-work-dir` 下，否则任务会以 `status=failed` 上报。命令以参数数组直接执行，**不经过 shell**。
+`配置/methods.json` 指向的 `./liu` 尚未实现。机器人按模板执行 `argv[0]`，因此该文件必须存在于机器人的 `-work-dir` 下，否则任务会以 `status=failed` 上报。命令以参数数组直接执行，**不经过 shell**。

@@ -13,7 +13,7 @@ func ValidateIP(remoteAddr string, whitelist []string) error {
 
 	client := clientIPOf(remoteAddr)
 	if client == nil {
-		return fmt.Errorf("client address %q cannot be parsed as an IP", remoteAddr)
+		return fmt.Errorf("无法把客户端地址 %q 解析为 IP", remoteAddr)
 	}
 
 	for _, entry := range whitelist {
@@ -21,7 +21,7 @@ func ValidateIP(remoteAddr string, whitelist []string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("client %s is not in the ip whitelist of this key", client)
+	return fmt.Errorf("客户端 %s 不在该 key 的 IP 白名单内", client)
 }
 
 func ipAllowed(entry string, client net.IP) bool {

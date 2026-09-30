@@ -52,7 +52,7 @@ type Request struct {
 func Parse(values url.Values, remoteAddr string, limits Limits) (Request, error) {
 	key := strings.TrimSpace(values.Get("key"))
 	if key == "" {
-		return Request{}, errors.New("key is required")
+		return Request{}, errors.New("缺少 key 参数")
 	}
 
 	if err := ValidateIP(remoteAddr, limits.AllowedIPs); err != nil {
@@ -71,7 +71,7 @@ func Parse(values url.Values, remoteAddr string, limits Limits) (Request, error)
 
 	method := strings.TrimSpace(values.Get("method"))
 	if !allowedMethod.MatchString(method) {
-		return Request{}, fmt.Errorf("method %q is missing or malformed", method)
+		return Request{}, fmt.Errorf("缺少 method 参数或格式不正确：%q", method)
 	}
 
 	client := ""
@@ -91,10 +91,10 @@ func Parse(values url.Values, remoteAddr string, limits Limits) (Request, error)
 func ValidateHost(raw string) (Host, error) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
-		return Host{}, errors.New("host is required")
+		return Host{}, errors.New("缺少 host 参数")
 	}
 	if !allowedHostChars.MatchString(trimmed) {
-		return Host{}, errors.New("host contains characters that are not allowed")
+		return Host{}, errors.New("host 含有不允许的字符")
 	}
 
 	scheme := ""
@@ -104,7 +104,7 @@ func ValidateHost(raw string) (Host, error) {
 		remainder = trimmed[index+3:]
 
 		if scheme != SchemeHTTPS && scheme != SchemeHTTP {
-			return Host{}, fmt.Errorf("unsupported scheme %q, only %s:// and %s:// are allowed", scheme, SchemeHTTPS, SchemeHTTP)
+			return Host{}, fmt.Errorf("不支持的协议 %q，只允许 %s:// 和 %s://", scheme, SchemeHTTPS, SchemeHTTP)
 		}
 	}
 
@@ -119,42 +119,42 @@ func ValidateHost(raw string) (Host, error) {
 func validateHostname(raw string) (string, error) {
 	hostname := strings.TrimSuffix(raw, ".")
 	if hostname == "" {
-		return "", errors.New("host is empty after the scheme")
+		return "", errors.New("去掉协议后 host 为空")
 	}
 	if strings.Contains(hostname, ":") {
-		return "", errors.New("host must not contain a port number")
+		return "", errors.New("host 不得包含端口号")
 	}
 	if strings.ContainsAny(hostname, "/?#@[]") {
-		return "", fmt.Errorf("host %q contains characters that are not allowed", hostname)
+		return "", fmt.Errorf("host %q 含有不允许的字符", hostname)
 	}
 	if isIPv4(hostname) {
 		return hostname, nil
 	}
 	if !domainPattern.MatchString(hostname) {
-		return "", fmt.Errorf("host %q is not a valid domain name or IPv4 address", hostname)
+		return "", fmt.Errorf("host %q 不是有效的域名或 IPv4 地址", hostname)
 	}
 	return strings.ToLower(hostname), nil
 }
 
 func ValidateTime(raw string, limit int) (int, error) {
 	if raw == "" {
-		return 0, errors.New("time is required")
+		return 0, errors.New("缺少 time 参数")
 	}
 	for _, character := range raw {
 		if character < '0' || character > '9' {
-			return 0, errors.New("time must contain digits only")
+			return 0, errors.New("time 只能包含数字")
 		}
 	}
 
 	seconds, err := strconv.Atoi(raw)
 	if err != nil {
-		return 0, fmt.Errorf("time %q is not a valid number", raw)
+		return 0, fmt.Errorf("time %q 不是有效数字", raw)
 	}
 	if seconds <= 0 {
-		return 0, errors.New("time must be greater than zero")
+		return 0, errors.New("time 必须大于零")
 	}
 	if limit > 0 && seconds > limit {
-		return 0, fmt.Errorf("time %d exceeds the limit of %d seconds for this key", seconds, limit)
+		return 0, fmt.Errorf("time %d 超过该 key 的上限 %d 秒", seconds, limit)
 	}
 	return seconds, nil
 }
@@ -173,7 +173,7 @@ func NormalizeHostname(raw string) string {
 func HostnameOf(raw string) (string, error) {
 	hostname := NormalizeHostname(raw)
 	if hostname == "" {
-		return "", errors.New("entry is empty")
+		return "", errors.New("条目为空")
 	}
 	return hostname, nil
 }
@@ -184,7 +184,7 @@ func ParseCmdTemplate(template, hostURL string, seconds int) ([]string, error) {
 
 	argv := strings.Fields(rendered)
 	if len(argv) == 0 {
-		return nil, fmt.Errorf("command %q renders to an empty argument list", template)
+		return nil, fmt.Errorf("命令 %q 渲染后得到空的参数列表", template)
 	}
 	return argv, nil
 }

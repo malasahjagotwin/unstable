@@ -27,7 +27,7 @@ func (m *slotManager) acquire(key, taskID string, ttl time.Duration, limit int) 
 
 	deadlines := m.liveDeadlines(key, now)
 	if len(deadlines) >= limit {
-		return 0, fmt.Errorf("all %d slot(s) for this key are occupied, retry after a running task expires", limit)
+		return 0, fmt.Errorf("该 key 的 %d 个槽位（slot）已全部占用，请等待运行中的任务超时后再试", limit)
 	}
 
 	deadlines[taskID] = now.Add(ttl)

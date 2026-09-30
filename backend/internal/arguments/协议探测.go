@@ -14,10 +14,10 @@ type Prober struct {
 func NewProber(raw string) (*Prober, error) {
 	timeout, err := time.ParseDuration(raw)
 	if err != nil {
-		return nil, fmt.Errorf("probe timeout %q is not a valid duration: %w", raw, err)
+		return nil, fmt.Errorf("探测超时 %q 不是有效的时间长度：%w", raw, err)
 	}
 	if timeout <= 0 {
-		return nil, fmt.Errorf("probe timeout %q must be greater than zero", raw)
+		return nil, fmt.Errorf("探测超时 %q 必须大于零", raw)
 	}
 	return &Prober{timeout: timeout}, nil
 }

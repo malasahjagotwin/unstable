@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"unstablestress/backend/arguments"
+	"unstablestress/backend/internal/arguments"
 )
 
 type flexInt int
@@ -21,7 +21,7 @@ func (f *flexInt) UnmarshalJSON(data []byte) error {
 	}
 	value, err := strconv.Atoi(text)
 	if err != nil {
-		return fmt.Errorf("expected a number, got %s", string(data))
+		return fmt.Errorf("期望一个数字，实际得到 %s", string(data))
 	}
 	*f = flexInt(value)
 	return nil
@@ -90,17 +90,17 @@ func LoadStore(jsonDir string) (*Store, error) {
 	}
 
 	if len(store.Users) == 0 {
-		return nil, fmt.Errorf("users.json holds no users")
+		return nil, fmt.Errorf("users.json 中没有任何用户")
 	}
 	if len(store.Methods) == 0 {
-		return nil, fmt.Errorf("methods.json holds no methods")
+		return nil, fmt.Errorf("methods.json 中没有任何方法")
 	}
 
 	store.blockedHosts = make(map[string]struct{}, len(store.Blacklist))
 	for _, entry := range store.Blacklist {
 		hostname, err := arguments.HostnameOf(entry)
 		if err != nil {
-			return nil, fmt.Errorf("blacklist.json entry %q: %w", entry, err)
+			return nil, fmt.Errorf("blacklist.json 中的条目 %q：%w", entry, err)
 		}
 		store.blockedHosts[hostname] = struct{}{}
 	}
@@ -115,23 +115,23 @@ func resolveJSONDir(jsonDir string) (string, error) {
 
 	executable, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("json directory %q not found and executable path is unknown: %w", jsonDir, err)
+		return "", fmt.Errorf("找不到 json 目录 %q，且无法确定可执行文件路径：%w", jsonDir, err)
 	}
 	fallback := filepath.Join(filepath.Dir(executable), jsonDir)
 	if info, err := os.Stat(fallback); err == nil && info.IsDir() {
 		return fallback, nil
 	}
 
-	return "", fmt.Errorf("json directory %q not found (also checked %q)", jsonDir, fallback)
+	return "", fmt.Errorf("找不到 json 目录 %q（同时检查过 %q）", jsonDir, fallback)
 }
 
 func readJSONFile(path string, target any) error {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("read %s: %w", path, err)
+		return fmt.Errorf("读取 %s 失败：%w", path, err)
 	}
 	if err := json.Unmarshal(raw, target); err != nil {
-		return fmt.Errorf("parse %s: %w", path, err)
+		return fmt.Errorf("解析 %s 失败：%w", path, err)
 	}
 	return nil
 }
