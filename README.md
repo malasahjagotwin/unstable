@@ -7,6 +7,12 @@ Go 编写的单端点 REST API，通过 WebSocket 把任务分发给已连接的
 ## 结构
 
 ```
+frontend/                Next.js 16 控制台（TypeScript + Tailwind）
+  src/app/page.tsx         / 重定向到 /auth/login
+  src/app/auth/            登录页，以及 login/logout 服务器动作
+  src/app/dashboard/       受保护布局与控制台占位页
+  src/lib/session.ts       key 校验、遮罩与路径常量（纯逻辑，有单元测试）
+
 backend/
   主程序.go                 服务器：启动参数、路由、优雅退出
   任务分发.go                /fetch 处理逻辑
@@ -67,6 +73,21 @@ go build -o bin/bot ./bot
 ```
 
 参数 `-addr`、`-json-dir`、`-bot-token`、`-probe-timeout`、`-slot-reap-interval` 详见 `./bin/api -h`。
+
+## 前端
+
+```bash
+cd frontend
+npm install
+npm run dev        # 开发服务器
+npm run lint
+npm run typecheck
+npm run test
+```
+
+`/` 会重定向到 `/auth/login`。后端没有登录接口，唯一凭据是 `配置/users.json` 里每个用户的 `key`，因此登录页收集 key 写入 httpOnly cookie（`unstable_key`），由服务端带给 `/fetch`。key 在客户端只做格式校验，真正的有效性由后端在首次 `/fetch` 时判定；页面显示的 key 一律遮罩。
+
+尚未实现：调用 `/fetch` 的任务分发表单、方法列表与结果视图，以及指向 Go 服务的后端地址配置。
 
 ## 已知缺口
 
