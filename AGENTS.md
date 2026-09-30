@@ -1,23 +1,28 @@
-# Project Rules
+# 项目规则
 
-## Code Standards
+## 语言
 
-- Code must be clean, readable, and clearly structured at all times.
-- Prefer self-documenting code: descriptive names, small focused functions, early returns over deep nesting.
+- 一律使用中文回复，包括解释、提问选项和总结。
+- 代码中的标识符、字符串字面量和日志文案保持英文，不需要翻译。
 
-## Comments
+## 代码规范
 
-- `//` comments are forbidden. This applies to:
-  - standalone comment lines
-  - trailing (end-of-line) comments
-  - comment blocks at the top of a file
-  - doc comments on exported identifiers
-  - comments inside JSON, JSONC, YAML, and config files
-- When an explanation is genuinely required, use a `/* ... */` block comment placed on its own line above the code it describes.
-- If a block comment would make the file noisier than the code is unclear, write no comment at all. Extract a well-named function instead.
-- Never add comments that merely restate what the code does.
+- 代码任何时候都必须整洁、可读、结构清晰。
+- 优先写自解释的代码：命名有描述性、函数职责单一、用提前返回代替深层嵌套。
 
-## Verification
+## 注释
 
-- After every change, run the project's build, lint, and test commands. If none are configured, say so explicitly rather than reporting success.
-- Do not claim a change works unless it was actually compiled or executed.
+- 禁止使用 `//` 注释，包括以下所有形式：
+  - 独占一行的注释
+  - 行尾注释
+  - 文件顶部的注释块
+  - 导出标识符的文档注释
+  - JSON、JSONC、YAML 和配置文件内部的注释
+- 确实需要说明时，使用 `/* ... */` 块注释，并单独成行放在被说明代码的上方。
+- 如果加注释反而让文件比代码本身更难读，那就不要写注释，改为提取一个命名清晰的函数。
+- 不要添加 merely 复述代码行为的注释。
+
+## 验证
+
+- 每次改动后，都要运行项目的 build、lint 和 test 命令。如果没有配置这些命令，就明确说明，不要报告成功。
+- 除非真正编译或执行过，否则不要声称改动可用。
